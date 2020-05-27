@@ -65,11 +65,13 @@ class SingleTrainerYamlOpt(TranspileTrainer):
         batch_size = envs.get_global_env(name + "batch_size")
         reader_type = envs.get_global_env(name + "type")
         if envs.get_platform() != "LINUX":
-            print("platform ", envs.get_platform(), " change reader to DataLoader")
+            print("platform ", envs.get_platform(),
+                  " change reader to DataLoader")
             reader_type = "DataLoader"
         padding = 0
 
-        reader = envs.path_adapter("paddlerec.core.utils") + "/dataset_instance.py"
+        reader = envs.path_adapter(
+            "paddlerec.core.utils") + "/dataset_instance.py"
         pipe_cmd = "python {} {} {} {} {} {} {} {}".format(
             reader, "slot", "slot", self._config_yaml, "fake", \
             sparse_slots.replace(" ", "#"), dense_slots.replace(" ", "#"), str(padding))
@@ -103,15 +105,22 @@ class SingleTrainerYamlOpt(TranspileTrainer):
             startup_program = fluid.Program()
             scope = fluid.Scope()
             opt_name = envs.get_global_env("hyper_parameters.optimizer.class")
-            opt_lr = envs.get_global_env("hyper_parameters.optimizer.learning_rate")
-            opt_strategy = envs.get_global_env("hyper_parameters.optimizer.strategy")
+            opt_lr = envs.get_global_env(
+                "hyper_parameters.optimizer.learning_rate")
+            opt_strategy = envs.get_global_env(
+                "hyper_parameters.optimizer.strategy")
             with fluid.program_guard(train_program, startup_program):
                 with fluid.unique_name.guard():
-                    model_path = model_dict["model"].replace("{workspace}", envs.path_adapter(self._env["workspace"]))
-                    model = envs.lazy_instance_by_fliename(model_path, "Model")(self._env)
-                    model._data_var = model.input_data(dataset_name=model_dict["dataset_name"])
-                    model.net(None)
-                    optimizer = model._build_optimizer(opt_name, opt_lr, opt_strategy)
+                    model_path = model_dict["model"].replace(
+                        "{workspace}",
+                        envs.path_adapter(self._env["workspace"]))
+                    model = envs.lazy_instance_by_fliename(model_path,
+                                                           "Model")(self._env)
+                    model._data_var = model.input_data(
+                        dataset_name=model_dict["dataset_name"])
+                    model.net(model._data_var)
+                    optimizer = model._build_optimizer(opt_name, opt_lr,
+                                                       opt_strategy)
                     optimizer.minimize(model._cost)
             self._model[model_dict["name"]][0] = train_program
             self._model[model_dict["name"]][1] = startup_program
@@ -119,13 +128,14 @@ class SingleTrainerYamlOpt(TranspileTrainer):
             self._model[model_dict["name"]][3] = model
 
         for dataset in self._env["dataset"]:
-            self._dataset[dataset["name"]] = self._create_dataset(dataset["name"])
+            self._dataset[dataset["name"]] = self._create_dataset(dataset[
+                "name"])
 
         context['status'] = 'startup_pass'
 
     def startup(self, context):
         for model_dict in self._env["executor"]:
-            with fluid.scope_guard(self._model[model_dict["name"]][2]):            
+            with fluid.scope_guard(self._model[model_dict["name"]][2]):
                 self._exe.run(self._model[model_dict["name"]][1])
         context['status'] = 'train_pass'
 
@@ -167,13 +177,13 @@ class SingleTrainerYamlOpt(TranspileTrainer):
                 fetch_info=fetch_alias,
                 print_period=fetch_period)
 
-
     def _executor_dataloader_train(self, model_dict):
         reader_name = model_dict["dataset_name"]
         model_name = model_dict["name"]
         model_class = self._model[model_name][3]
         self._model[model_name][1] = fluid.compiler.CompiledProgram(
-            self._model[model_name][1]).with_data_parallel(loss_name=model_class.get_avg_cost().name)
+            self._model[model_name][1]).with_data_parallel(
+                loss_name=model_class.get_avg_cost().name)
         fetch_vars = []
         fetch_alias = []
         fetch_period = 20
