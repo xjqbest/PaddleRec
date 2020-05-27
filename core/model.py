@@ -38,6 +38,7 @@ class Model(object):
         self._namespace = "train.model"
         self._platform = envs.get_platform()
         self._init_hyper_parameters()
+        self._env = config
 
     def _init_hyper_parameters(self):
         pass
@@ -103,7 +104,7 @@ class Model(object):
     def get_fetch_period(self):
         return self._fetch_interval
 
-    def _build_optimizer(self, name, lr):
+    def _build_optimizer(self, name, lr, strategy=None):
         name = name.upper()
         optimizers = ["SGD", "ADAM", "ADAGRAD"]
         if name not in optimizers:
@@ -133,10 +134,10 @@ class Model(object):
         print(">>>>>>>>>>>.learnig rate: %s" % learning_rate)
         return self._build_optimizer(optimizer, learning_rate)
 
-    def input_data(self, is_infer=False):
-        sparse_slots = envs.get_global_env("sparse_slots", None,
-                                           "train.reader")
-        dense_slots = envs.get_global_env("dense_slots", None, "train.reader")
+    def input_data(self, is_infer=False, **kwargs):
+        name = "dataset." + kwargs.get("dataset_name") + "."
+        sparse_slots = envs.get_global_env(name + "sparse_slots")
+        dense_slots = envs.get_global_env(name + "dense_slots")
         if sparse_slots is not None or dense_slots is not None:
             sparse_slots = sparse_slots.strip().split(" ")
             dense_slots = dense_slots.strip().split(" ")

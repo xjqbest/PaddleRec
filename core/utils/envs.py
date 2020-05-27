@@ -20,7 +20,6 @@ import sys
 
 global_envs = {}
 
-
 def flatten_environs(envs, separator="."):
     flatten_dict = {}
     assert isinstance(envs, dict)
@@ -68,13 +67,21 @@ def set_global_envs(envs):
                 nests = copy.deepcopy(namespace_nests)
                 nests.append(k)
                 fatten_env_namespace(nests, v)
+            elif (k == "dataset" or k == "executor") and isinstance(v, list):
+                for i in v:
+                    if i.get("name") is None:
+                        raise ValueError("name must be in dataset list ", v)
+                    nests = copy.deepcopy(namespace_nests)
+                    nests.append(k)
+                    nests.append(i["name"])
+                    fatten_env_namespace(nests, i)
             else:
                 global_k = ".".join(namespace_nests + [k])
                 global_envs[global_k] = v
 
-    for k, v in envs.items():
-        fatten_env_namespace([k], v)
-
+    fatten_env_namespace([], envs)
+    for i in global_envs:
+        print i,":",global_envs[i]
 
 def get_global_env(env_name, default_value=None, namespace=None):
     """
@@ -106,7 +113,7 @@ def windows_path_converter(path):
 
 
 def update_workspace():
-    workspace = global_envs.get("train.workspace", None)
+    workspace = global_envs.get("workspace")
     if not workspace:
         return
     workspace = path_adapter(workspace)
